@@ -67,12 +67,12 @@ cv2.destroyAllWindows()
 # calibration
 ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
 R = [cv2.Rodrigues(r)[0] for r in rvecs]
-print(R)
 # transform the matrix and distortion coefficients to writable lists
 data = {'camera_matrix': np.asarray(mtx).tolist(),
         'dist_coeff': np.asarray(dist).tolist(),
-        'R': R,
-        'tvecs': np.asarray(tvecs).tolist()}
+        'R': [r.tolist() for r in R],  # Convertir en listes
+        'tvecs': [t.tolist() for t in tvecs]  # Si tvecs est aussi un ndarray
+        }
 
 # and save it to a file
 with open("calibration_matrix.json", "w") as f:
