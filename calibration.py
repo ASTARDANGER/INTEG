@@ -20,11 +20,11 @@ def sort_corners(corners, nx, ny):
 
 # termination criteria
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-# prepare object points, like (0,0,0), (0.02,0,0), (0.04,0,0) ....,(0.12,0.12,0)
+# prepare object points, like (0.02,0.02,0), (0.04,0.02,0), (0.06,0.02,0) ....,(0.14,0.14,0)
 square_size = 0.02  # in mm
 nx, ny = 7, 7 # number of corners in x and y directions
 objp = np.zeros((nx*ny,3), np.float32)
-objp[:,:2] = square_size*np.mgrid[0:nx,0:ny].T.reshape(-1,2)
+objp[:,:2] = square_size*np.mgrid[1:nx+1,1:ny+1].T.reshape(-1,2)
 print(objp)
 # Arrays to store object points and image points from all the images.
 objpoints = [] # 3d point in real world space
@@ -66,11 +66,12 @@ cv2.destroyAllWindows()
 
 # calibration
 ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
-
+R = [cv2.Rodrigues(r)[0] for r in rvecs]
+print(R)
 # transform the matrix and distortion coefficients to writable lists
 data = {'camera_matrix': np.asarray(mtx).tolist(),
         'dist_coeff': np.asarray(dist).tolist(),
-        'rvecs': np.asarray(rvecs).tolist(),
+        'R': R,
         'tvecs': np.asarray(tvecs).tolist()}
 
 # and save it to a file
