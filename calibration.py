@@ -4,6 +4,7 @@ import numpy as np
 import cv2
 import glob
 import json
+from math import atan2, pi
 #import pathlib
 
 def sort_corners(corners, nx, ny):
@@ -78,4 +79,25 @@ data = {'camera_matrix': np.asarray(mtx).tolist(),
 with open("calibration_matrix.json", "w") as f:
     json.dump(data, f)
 
+# Choisir la première image calibrée (index 0)
+rvec = rvecs[0]
+tvec = tvecs[0]
+point_3D = np.array([objpoints[0][0]], dtype=np.float32)  # Premier point de la mire
+
+# Projeter le point 3D sur l'image
+point_2D, _ = cv2.projectPoints(point_3D, rvec, tvec, mtx, dist)
+
+# Comparer avec le point détecté réel
+point_reel = imgpoints[0][0]  # Premier point détecté dans l'image
+
+print(f"Point projeté : {point_2D.ravel()}")
+print(f"Point détecté réel : {point_reel.ravel()}")
+
+# Calculer l'erreur de reprojection
+erreur = np.linalg.norm(point_2D - point_reel)
+print(f"Erreur de reprojection : {erreur:.2f} pixels")
 # done
+
+ax=2*atan2(640/2, mtx[0][0])
+ay=2*atan2(480/2, mtx[1][1])
+print(ax*180/pi, ay*180/pi)
