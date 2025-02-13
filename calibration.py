@@ -160,5 +160,6 @@ def get_oTc(key):
 oTcList = []
 for i in range(found):
     oTcList.append(get_oTc(i))
+print(oTcList)
 oTc = np.mean(oTcList, axis=0)
 print(oTc)
