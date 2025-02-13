@@ -29,7 +29,10 @@ def txt2matrix(filename):
 
             keys = elements[0]  # Premier élément = nom de l'image
 
-            values = tuple(map(float, elements[1].strip('()').split()))  # Deuxième élément = valeurs de la matrice
+            values = elements[1:] # Deuxième élément = valeurs de la matrice
+            values[0] = values[0].replace("(", "")  # Enlever "(" du premier nombre
+            values[-1] = values[-1].replace(")", "")  # Enlever ")" du dernier nombre
+            values = tuple(map(float, values))  # Deuxième élément = valeurs de la matrice
             values = np.array(values).reshape(4, 4)  # Transformer la liste en matrice 4x4
             values = values.T  # Transposer la matrice
 
@@ -120,8 +123,8 @@ ay=2*atan2(480/2, mtx[1][1])
 print(ax*180/pi, ay*180/pi)
 
 
-mat_poseInit = txt2matrix("pose_initiale/cart_poses.txt")
-mat_poses = txt2matrix("img_et_pose_damier/cart_poses.txt")
+mat_poseInit = txt2matrix("photos_integ/pose_initiale/cart_poses.txt")
+mat_poses = txt2matrix("photos_integ/img_et_pose_damier/cart_poses.txt")
 
 def get_oTb(key):
     oTb = mat_poses[key]
@@ -138,9 +141,12 @@ def get_bTm():
     bTm = mat_poseInit["0"]
     return bTm
 
+print(get_bTm())
+
 def get_oTc(key):
     return get_oTb(key) @ get_bTm @ get_mTc(R[key], tvecs[key])
 
 oTcList = {}
-for i in range(found):
+for i in range(1, found+1):
     oTcList[str(i)] = get_oTc(str(i))
+print(oTcList)
