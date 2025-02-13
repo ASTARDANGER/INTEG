@@ -89,7 +89,7 @@ cv2.destroyAllWindows()
 ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
 R = [cv2.Rodrigues(r)[0] for r in rvecs]
 t = [e.tolist() for e in tvecs]
-print(t)
+
 # transform the matrix and distortion coefficients to writable lists
 data = {'camera_matrix': np.asarray(mtx).tolist(),
         'dist_coeff': np.asarray(dist).tolist(),
@@ -119,6 +119,17 @@ print(f"Point détecté réel : {point_reel.ravel()}")
 erreur = np.linalg.norm(point_2D - point_reel)
 print(f"Erreur de reprojection : {erreur:.2f} pixels")
 # done
+
+# Charger l'image pour afficher le point projeté
+img_calib = cv2.imread('photos_integ/img_et_pose_damier/1.jpg')
+
+# Afficher le point projeté sur l'image
+cv2.circle(img_calib, tuple(point_2D.ravel().astype(int)), 5, (0, 0, 255), -1)
+
+# Afficher l'image avec le point projeté
+cv2.imshow('Point projeté', img_calib)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
 
 ax=2*atan2(640/2, mtx[0][0])
 ay=2*atan2(480/2, mtx[1][1])
