@@ -143,15 +143,15 @@ def get_bTm():
     bTm = mat_poseInit["0"]
     return bTm
 
-print(f"get_oTb: \n{get_oTb("1")}")
+print(f"get_oTb: \n{get_oTb(str(0+1))}")
 print(f"get_bTm: \n{get_bTm()}")
 print(f"get_mTc: \n{get_mTc(0)}")
 
 
 def get_oTc(key):
-    return get_oTb(str(key+1)) @ get_bTm @ get_mTc(key)
+    return get_oTb(str(key+1)) @ get_bTm() @ get_mTc(key)
 
 oTcList = {}
 for i in range(found):
-    oTcList[str(i)] = get_oTc(i)
+    oTcList[i] = get_oTc(i)
 print(oTcList)
