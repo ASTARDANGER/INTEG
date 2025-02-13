@@ -1,4 +1,4 @@
-## credits: https://nikatsanka.github.io/camera-calibration-using-opencv-and-python.html ##
+### credits: https://nikatsanka.github.io/camera-calibration-using-opencv-and-python.html ###
 
 import numpy as np
 import cv2
@@ -18,6 +18,23 @@ def sort_corners(corners, nx, ny):
     # Convertir en array NumPy de type float32, qui est le format attendu
     return np.array(sorted_corners, dtype=np.float32)
 
+def txt2matrix(filename):
+    #"img_et_pose_damier/cart_poses.txt"
+    #"pose_initiale/cart_poses.txt"
+    with open(filename, "r", encoding="utf-8") as file: 
+        next(file) # Ignorer la première ligne
+        matrix = {}  # Dictionnaire pour stocker les matrices associées aux images
+        for line in file:
+            elements = line.strip().split(",")  # Séparer les éléments par ","
+
+            keys = elements[0]  # Premier élément = nom de l'image
+
+            values = tuple(map(float, elements[1].strip('()').split()))  # Deuxième élément = valeurs de la matrice
+            values = np.array(values).reshape(4, 4)  # Transformer la liste en matrice 4x4
+            values = values.T  # Transposer la matrice
+
+            matrix[keys] = values # Stocker la matrice associée au nom de l'image
+    return matrix
 
 # termination criteria
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
@@ -101,3 +118,29 @@ print(f"Erreur de reprojection : {erreur:.2f} pixels")
 ax=2*atan2(640/2, mtx[0][0])
 ay=2*atan2(480/2, mtx[1][1])
 print(ax*180/pi, ay*180/pi)
+
+
+mat_poseInit = txt2matrix("pose_initiale/cart_poses.txt")
+mat_poses = txt2matrix("img_et_pose_damier/cart_poses.txt")
+
+def get_oTb(key):
+    oTb = mat_poses[key]
+    return oTb
+
+def get_mTc(Ri, ti):
+    cTm = np.zeros(4,4)
+    cTm[:3,:3] = Ri[0]
+    cTm[:3,3] = ti[0]
+    cTm[3,3] = 1
+    return inv(cTm) #=mTc
+
+def get_bTm():
+    bTm = mat_poseInit["0"]
+    return bTm
+
+def get_oTc(key):
+    return get_oTb(key) @ get_bTm @ get_mTc(R[key], tvecs[key])
+
+oTcList = {}
+for i in range(found):
+    oTcList[str(i)] = get_oTc(str(i))
