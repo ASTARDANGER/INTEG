@@ -129,8 +129,8 @@ mat_poseInit = txt2matrix("photos_integ/pose_initiale/cart_poses.txt")
 mat_poses = txt2matrix("photos_integ/img_et_pose_damier/cart_poses.txt")
 
 def get_oTb(key):
-    oTb = mat_poses[key]
-    return oTb
+    bTo = mat_poses[key]
+    return np.linalg.inv(bTo) #=oTb
 
 def get_mTc(i):
     cTm = np.zeros((4,4))
@@ -143,15 +143,11 @@ def get_bTm():
     bTm = mat_poseInit["0"]
     return bTm
 
-print(f"get_oTb: \n{get_oTb(str(0+1))}")
-print(f"get_bTm: \n{get_bTm()}")
-print(f"get_mTc: \n{get_mTc(0)}")
-
-
 def get_oTc(key):
     return get_oTb(str(key+1)) @ get_bTm() @ get_mTc(key)
 
-oTcList = {}
+oTcList = []
 for i in range(found):
-    oTcList[i] = get_oTc(i)
-print(oTcList)
+    oTcList.append(get_oTc(i))
+oTc = np.mean(oTcList, axis=0)
+print(oTc)
