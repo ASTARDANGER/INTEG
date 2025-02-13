@@ -88,11 +88,13 @@ cv2.destroyAllWindows()
 # calibration
 ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
 R = [cv2.Rodrigues(r)[0] for r in rvecs]
+t = [e.tolist() for e in tvecs]
+print(t)
 # transform the matrix and distortion coefficients to writable lists
 data = {'camera_matrix': np.asarray(mtx).tolist(),
         'dist_coeff': np.asarray(dist).tolist(),
         'R': [r.tolist() for r in R],  # Convertir en listes
-        'tvecs': [t.tolist() for t in tvecs]  # Si tvecs est aussi un ndarray
+        'tvecs': t  # Si tvecs est aussi un ndarray
         }
 
 # and save it to a file
@@ -130,23 +132,26 @@ def get_oTb(key):
     oTb = mat_poses[key]
     return oTb
 
-def get_mTc(Ri, ti):
-    cTm = np.zeros(4,4)
-    cTm[:3,:3] = Ri[0]
-    cTm[:3,3] = ti[0]
+def get_mTc(i):
+    cTm = np.zeros((4,4))
+    cTm[:3,:3] = R[i]
+    cTm[:3,3] = np.ravel(t[i]) #[[x],[y],[z]] -> [x,y,z]
     cTm[3,3] = 1
-    return inv(cTm) #=mTc
+    return np.linalg.inv(cTm) #=mTc
 
 def get_bTm():
     bTm = mat_poseInit["0"]
     return bTm
 
-print(get_bTm())
+print(f"get_oTb: \n{get_oTb("1")}")
+print(f"get_bTm: \n{get_bTm()}")
+print(f"get_mTc: \n{get_mTc(0)}")
+
 
 def get_oTc(key):
-    return get_oTb(key) @ get_bTm @ get_mTc(R[key], tvecs[key])
+    return get_oTb(str(key+1)) @ get_bTm @ get_mTc(key)
 
 oTcList = {}
-for i in range(1, found+1):
-    oTcList[str(i)] = get_oTc(str(i))
+for i in range(found):
+    oTcList[str(i)] = get_oTc(i)
 print(oTcList)
