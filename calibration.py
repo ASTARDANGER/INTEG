@@ -87,7 +87,7 @@ cv2.destroyAllWindows()
 
 # calibration
 ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
-R = [cv2.Rodrigues(r)[0] for r in rvecs]
+R = [cv2.Rodrigues(r)[0] for r in rvecs] # Rodrigues to convert rvecs to rotation matrices in angle-axis form
 t = [e.tolist() for e in tvecs]
 
 # transform the matrix and distortion coefficients to writable lists
