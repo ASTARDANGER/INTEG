@@ -2,6 +2,12 @@ import cv2
 import numpy as np
 import glob
 
+# Charge l'image
+images = glob.glob(r'photos_integ/flux_continu/*.jpg')
+cx_final = 0
+cy_final = 0
+radius_final = 0
+
 # Fonction pour ajuster un cercle tangent au contour
 def fit_circle_to_contour(contour):
     # Conversion du contour en un tableau de points
@@ -19,9 +25,6 @@ def fit_circle_to_contour(contour):
     
     return (int(cx), int(cy)), int(r)
 
-# Charge l'image
-images = glob.glob(r'photos_integ/flux_continu/*.jpg')
-
 def detect_black_hole(img):
     # Conversion en niveaux de gris
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -33,20 +36,10 @@ def detect_black_hole(img):
     contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     
     # Filtrage des contours selon leur taille et leur circularité
-    best_contour = None
-    best_circularity = 0
-    for c in contours:
-        area = cv2.contourArea(c)
-        perimeter = cv2.arcLength(c, True)
-        if perimeter == 0:
-            continue
-        circularity = 4 * np.pi * (area / (perimeter ** 2))  # 1 pour un cercle parfait
-        if area > 500 and circularity > best_circularity:  # Ajuster 500 selon la taille du trou si besoin de filtrer petits cercles parasites
-            best_circularity = circularity
-            best_contour = c
+    best_contour = max(contours, key=cv2.contourArea, default=None) # Contour le plus grand
     
     if best_contour is not None:
-        # Calcul du centroïde
+        # Calcul du centroïde du contour détecté
         M = cv2.moments(best_contour)
         if M["m00"] != 0:
             cX = int(M["m10"] / M["m00"])
@@ -61,7 +54,7 @@ def detect_black_hole(img):
         cv2.putText(img, f"({cX}, {cY})", (cX - 30, cY - 20), cv2.FONT_HERSHEY_SIMPLEX, 
                     0.6, (0, 255, 0), 2)
         
-        # Ajustement pour avoir un cercle qui passe par le plus de points du contour
+        # Ajustement pour avoir un cercle qui épouse le mieux le contour
         (cx, cy), radius = fit_circle_to_contour(best_contour)
         
         # Dessin du cercle ajusté
@@ -71,7 +64,8 @@ def detect_black_hole(img):
         cv2.circle(img, (cx, cy), 7, (255, 0, 0), -1)  # Bleu pour marquer le centre du cercle
         cv2.putText(img, f"({cx}, {cy})", (cx - 30, cy - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
     
-    return img
+        return img, cx, cy, radius
+    return None, None, None, None
 
 for image_path in images:
     img = cv2.imread(image_path)
@@ -102,30 +96,34 @@ for image_path in images:
     ## FIN DU ROGNAGE
 
     # On applique la détection
-    result = detect_black_hole(cropped_image)
-
+    result_img, cx, cy, radius = detect_black_hole(cropped_image)
+    if result_img is None:
+        continue
     ## REMAP LES RÉSULTATS SUR L'IMAGE ORIGINALE
-    gray = cv2.cvtColor(cropped_image, cv2.COLOR_BGR2GRAY)
-    _, thresh = cv2.threshold(gray, 18, 255, cv2.THRESH_BINARY_INV)
-    contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    # Conversion des coordonnées pour repasser dans le référentiel de l'image d'origine
+    cx += x
+    cy += y
+    # Dessin des résultats sur l'image d'origine
+    cv2.circle(img, (cx, cy), radius, (255, 0, 0), 2)  # Cercle bleu
+    cv2.circle(img, (cx, cy), 7, (255, 0, 0), -1)  # Centre bleu
+    cv2.putText(img, f"({cx}, {cy})", (cx - 30, cy - 20), cv2.FONT_HERSHEY_SIMPLEX, 
+                0.6, (255, 0, 0), 2)
+    ## FIN DU REMAP     
 
-    if contours:
-        best_contour = max(contours, key=cv2.contourArea)
-        (cx, cy), radius = fit_circle_to_contour(best_contour)
-
-        # Conversion des coordonnées au référentiel de l'image d'origine
-        cx += x
-        cy += y
-
-        # Dessin des résultats sur l'image d'origine
-        cv2.circle(img, (cx, cy), radius, (255, 0, 0), 2)  # Cercle bleu
-        cv2.circle(img, (cx, cy), 7, (255, 0, 0), -1)  # Centre bleu
-        cv2.putText(img, f"({cx}, {cy})", (cx - 30, cy - 20), cv2.FONT_HERSHEY_SIMPLEX, 
-                    0.6, (255, 0, 0), 2)
-    ## FIN DU REMAP
-
-    # Affichage de l'image résultante
-    cv2.imshow("Detected Hole", cropped_image) #mettre img pour visualiser dans l'image d'origine
+    # Affichage de l'image
+    cv2.imshow("Detected Hole", img) #mettre img pour visualiser dans l'image d'origine et cropped_image pour visualiser dans l'image rognée
+    
+    # Nous avons mesuré expérimentalement les coordonnées de l'effecteur final afin que lorsque le trou est suffisamment proche de celui-ci, nous le considérions comme le trou final
+    ex = 450
+    ey = 60
+    epsilon = 85 # Marge d'erreur tolérée (en pixels) <=> à quel point le trou est proche de l'organe terminal
+    if abs(cx-ex) < epsilon and abs(cy-ey) < epsilon:
+        cx_final = cx
+        cy_final = cy
+        radius_final = radius
+        print("got it")
+        break
     cv2.waitKey(300)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
+print(cx_final, cy_final, radius_final)
