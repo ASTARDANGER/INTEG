@@ -4,9 +4,7 @@ import glob
 
 # Charge l'image
 images = glob.glob(r'photos_integ/flux_continu/*.jpg')
-cx_final = 0
-cy_final = 0
-radius_final = 0
+u, v, a = 0, 0, 0
 
 # Fonction pour ajuster un cercle tangent au contour
 def fit_circle_to_contour(contour):
@@ -64,7 +62,7 @@ def detect_black_hole(img):
         cv2.circle(img, (cx, cy), 7, (255, 0, 0), -1)  # Bleu pour marquer le centre du cercle
         cv2.putText(img, f"({cx}, {cy})", (cx - 30, cy - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
     
-        return img, cx, cy, radius
+        return img, best_contour, cx, cy, radius
     return None, None, None, None
 
 for image_path in images:
@@ -96,7 +94,8 @@ for image_path in images:
     ## FIN DU ROGNAGE
 
     # On applique la détection
-    result_img, cx, cy, radius = detect_black_hole(cropped_image)
+    result_img, best_contour, cx, cy, radius = detect_black_hole(cropped_image)
+    updated_contour = best_contour + np.array([x, y]) # Mise à jour des coordonnées du contour dans le référentiel de l'image d'origine
     if result_img is None:
         continue
     ## REMAP LES RÉSULTATS SUR L'IMAGE ORIGINALE
@@ -104,26 +103,26 @@ for image_path in images:
     cx += x
     cy += y
     # Dessin des résultats sur l'image d'origine
+    cv2.drawContours(img, updated_contour, -1, (0, 0, 255), 2) # Rouge pour le contour
     cv2.circle(img, (cx, cy), radius, (255, 0, 0), 2)  # Cercle bleu
-    cv2.circle(img, (cx, cy), 7, (255, 0, 0), -1)  # Centre bleu
+    cv2.circle(img, (cx, cy), 7, (0, 255, 0), -1)  # Centre vert
     cv2.putText(img, f"({cx}, {cy})", (cx - 30, cy - 20), cv2.FONT_HERSHEY_SIMPLEX, 
-                0.6, (255, 0, 0), 2)
+                0.6, (0, 255, 0), 2)
     ## FIN DU REMAP     
-
+    print(cx, cy, np.pi*radius**2)
     # Affichage de l'image
     cv2.imshow("Detected Hole", img) #mettre img pour visualiser dans l'image d'origine et cropped_image pour visualiser dans l'image rognée
     
-    # Nous avons mesuré expérimentalement les coordonnées de l'effecteur final afin que lorsque le trou est suffisamment proche de celui-ci, nous le considérions comme le trou final
-    ex = 450
-    ey = 60
-    epsilon = 85 # Marge d'erreur tolérée (en pixels) <=> à quel point le trou est proche de l'organe terminal
-    if abs(cx-ex) < epsilon and abs(cy-ey) < epsilon:
-        cx_final = cx
-        cy_final = cy
-        radius_final = radius
+    # Nous avons mesuré l'aire du trou sur l'image où l'organe terminal est suffisamment proche de celui-ci (en pixels)
+    a_ref = np.pi*37**2 # Aire du trou en pixels
+    epsilon = 5 # Marge d'erreur tolérée (en pixels) <=> à quel point le trou est proche de l'organe terminal
+    if abs(np.pi*radius**2-a_ref) < epsilon:
+        u = cx
+        v = cy
+        a = np.pi*radius**2
         print("got it")
         break
     cv2.waitKey(300)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
-print(cx_final, cy_final, radius_final)
+print(u, v, a)
