@@ -63,7 +63,7 @@ def detect_black_hole(img):
         cv2.putText(img, f"({cx}, {cy})", (cx - 30, cy - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
     
         return img, best_contour, cx, cy, radius
-    return None, None, None, None
+    return None, None, None, None, None
 
 for image_path in images:
     img = cv2.imread(image_path)
